@@ -23,7 +23,7 @@ This repository demonstrates my ability to work with industry-standard tools and
 
 Below are the data analysis projects included in this portfolio. Each subfolder contains a detailed `README.md` file explaining the methodology and findings.
 
-### 1. [COVID-19 Global Data Analysis](COVID-DATA-ANALISIS/README.md)
+### 1. [COVID-19 Global Data Analysis](COVID-DATA-ANALYSIS/README.md)
 * **Focus:** Mortality rates, infection rates, and population vaccination tracking.
 * **Key Skills:** Complex Joins, Window Functions (`PARTITION BY`), Data Casting.
 * **Status:** In Progress (SQL analysis phase).

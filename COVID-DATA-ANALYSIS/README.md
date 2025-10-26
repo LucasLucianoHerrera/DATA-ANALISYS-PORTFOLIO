@@ -11,6 +11,10 @@ The primary goal of this project is to perform a comprehensive exploratory **ana
 * **Source:** Our World in Data (Original Source - State the actual source if known).
 * **Initial State:** Data required cleaning and strict type casting during the import process to handle NULLs and ensure correct decimal division.
 
+***
+**⚠️ IMPORTANT:** The raw `.csv` data files are **not included** in this GitHub repository due to their large file size and GitHub's best practices. The files are tracked in the local `.gitignore`.
+***
+
 ## 💻 WORKFLOW PHASES
 
 ### Phase 1: Setup & Data Ingestion (SQL)

@@ -1,0 +1,13 @@
+# DATA FILES & LARGE ASSETS
+*.csv
+*.xlsx
+*.twbx  
+
+# TEMPORARY & SYSTEM FILES
+/tmp/
+.DS_Store  
+.vscode/   
+
+# PYTHON VIRTUAL ENVIRONMENTS
+__pycache__/
+venv/

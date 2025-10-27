@@ -148,32 +148,51 @@ ORDER BY
 GO
 
 -- 2. Verificar la tabla final
-SELECT TOP 3000 * FROM GlobalMetrics where RollingPeopleVaccinated is not null;
+SELECT * FROM GlobalMetrics;
 
 
 -- 3. Crear tabla de análisis de Embudo (Funnel) de Vacunación a Nivel Continental
 USE PortfolioProject; -- asegurarse que está en la bbdd correcta
 GO
 DROP TABLE IF EXISTS FunnelVaccinationMetrics;
+
+-- 1. CTE: Calcula la población máxima y la vacunación final por ubicación (para desduplicar)
+WITH LocationMetrics AS 
+(
+    SELECT 
+        dea.continent,
+        dea.location,
+        -- Obtiene la población única y los máximos de vacunación para cada ubicación
+        MAX(dea.population) AS MaxPopulation,
+        MAX(vac.people_vaccinated) AS MaxPeopleVaccinated,
+        MAX(vac.people_fully_vaccinated) AS MaxPeopleFullyVaccinated
+    FROM 
+        PortfolioProject..CovidDeaths dea
+    JOIN 
+        PortfolioProject..CovidVaccinations vac
+            ON dea.location = vac.location AND dea.date = vac.date
+    WHERE 
+        dea.continent IS NOT NULL
+    GROUP BY
+        dea.continent, dea.location -- Agrupamos por ubicación
+)
+-- 2. Consulta Final: Suma los máximos de población y calcula las tasas de conversión
 SELECT
-    dea.continent,
-    SUM(dea.population) AS TotalPopulation,
-    MAX(vac.people_vaccinated) AS PeopleWithFirstDose,
-    MAX(vac.people_fully_vaccinated) AS PeopleFullyVaccinated,
+    continent,
+    SUM(MaxPopulation) AS TotalPopulation, -- Ahora SUMA sobre el MAX ya calculado
+    SUM(MaxPeopleVaccinated) AS PeopleWithFirstDose,
+    SUM(MaxPeopleFullyVaccinated) AS PeopleFullyVaccinated,
+    
     -- Tasa de conversion del 1er paso (poblacion total a primera dosis)
-    (CAST(MAX(vac.people_vaccinated) AS DECIMAL(18, 4)) / SUM(dea.population)) * 100 AS FirstDoseRate,
-    -- Tasa de conversion del 2do paso (primera dosis a dosis completa)
-    (CAST(MAX(vac.people_fully_vaccinated) AS DECIMAL(18, 4)) / MAX(vac.people_vaccinated)) * 100 AS FullVaccinationConversionRate
-INTO FunnelVaccinationMetrics -- 🚨 Crea la tabla final para el Funnel
-FROM 
-    PortfolioProject..CovidDeaths dea
-JOIN 
-    PortfolioProject..CovidVaccinations vac 
-        ON dea.location = vac.location AND dea.date = vac.date
-WHERE
-    dea.continent IS NOT NULL
+    (CAST(SUM(MaxPeopleVaccinated) AS DECIMAL(18, 4)) / SUM(MaxPopulation)) * 100 AS FirstDoseRate,
+    
+    -- Tasa de conversion del 2do paso (Primera Dosis -> Dosis Completa)
+    (CAST(SUM(MaxPeopleFullyVaccinated) AS DECIMAL(18, 4)) / SUM(MaxPeopleVaccinated)) * 100 AS FullVaccinationConversionRate
+INTO FunnelVaccinationMetrics -- Crea la tabla final para el Funnel
+FROM
+    LocationMetrics -- Usamos los resultados del CTE
 GROUP BY
-    dea.continent
+    continent
 ORDER BY
     TotalPopulation DESC;
 GO

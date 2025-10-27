@@ -118,5 +118,32 @@ join PortfolioProject..CovidVaccinations vac
 where dea.continent is not null
 --order by 2,3
 
-select *
-from PercentPopulationVaccinated
+-- TABLA PARA TABLEAU
+-- 1. Crear tabla final de métricas para Tableau (Full-Stack Load)
+DROP TABLE IF EXISTS GlobalMetrics; 
+
+SELECT 
+    dea.continent, 
+    dea.location, 
+    dea.date, 
+    dea.population,
+    -- Tasa de infección (EDA)
+    (CAST(dea.total_cases AS DECIMAL(18, 4))/dea.population)*100 AS InfectionRate, 
+    -- Porcentaje de muerte (EDA)
+    (CAST(dea.total_deaths AS DECIMAL(18, 4))/dea.total_cases)*100 AS DeathPercentage, 
+    -- Rolling Count de Vacunación (Core Query)
+    SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.date) AS RollingPeopleVaccinated
+INTO GlobalMetrics  -- 🚨 Esto crea la tabla permanente y final
+FROM 
+    PortfolioProject..CovidDeaths dea
+JOIN 
+    PortfolioProject..CovidVaccinations vac 
+        ON dea.location = vac.location AND dea.date = vac.date
+WHERE 
+    dea.continent IS NOT NULL
+ORDER BY 
+    dea.location, dea.date;
+GO
+
+-- 2. Verificar la tabla final
+SELECT TOP 3000 * FROM GlobalMetrics where RollingPeopleVaccinated is not null;

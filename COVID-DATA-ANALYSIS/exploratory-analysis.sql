@@ -129,12 +129,12 @@ SELECT
     dea.location, 
     dea.date, 
     dea.population,
-    -- Tasa de infección (EDA)
-    (CAST(dea.total_cases AS DECIMAL(18, 4))/dea.population)*100 AS InfectionRate, 
-    -- Porcentaje de muerte (EDA)
-    (CAST(dea.total_deaths AS DECIMAL(18, 4))/dea.total_cases)*100 AS DeathPercentage, 
+    -- Tasa de infección (EDA). Sumo COALESCE para manejar valores null
+    (CAST(coalesce(dea.total_cases, 0) AS DECIMAL(18, 4))/coalesce(dea.population,1))*100 AS InfectionRate, 
+    -- Porcentaje de muerte (EDA). Sumo COALESCE y además NULLIF para evitar división por 0
+    (CAST(coalesce(dea.total_deaths,0) AS DECIMAL(18, 4))/coalesce(nullif(dea.total_cases,0),1))*100 AS DeathPercentage, 
     -- Rolling Count de Vacunación (Core Query)
-    SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.date) AS RollingPeopleVaccinated
+    SUM(coalesce(vac.new_vaccinations,0)) OVER (PARTITION BY dea.location ORDER BY dea.date) AS RollingPeopleVaccinated
 INTO GlobalMetrics  -- 🚨 Esto crea la tabla permanente y final
 FROM 
     PortfolioProject..CovidDeaths dea

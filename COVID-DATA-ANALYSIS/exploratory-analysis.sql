@@ -120,8 +120,10 @@ where dea.continent is not null
 
 -- TABLA PARA TABLEAU
 -- 1. Crear tabla final de métricas para Tableau (Full-Stack Load)
-DROP TABLE IF EXISTS GlobalMetrics; 
+USE PortfolioProject; -- asegurarse que está en la bbdd correcta
+GO
 
+DROP TABLE IF EXISTS GlobalMetrics; 
 SELECT 
     dea.continent, 
     dea.location, 
@@ -147,3 +149,35 @@ GO
 
 -- 2. Verificar la tabla final
 SELECT TOP 3000 * FROM GlobalMetrics where RollingPeopleVaccinated is not null;
+
+
+-- 3. Crear tabla de análisis de Embudo (Funnel) de Vacunación a Nivel Continental
+USE PortfolioProject; -- asegurarse que está en la bbdd correcta
+GO
+DROP TABLE IF EXISTS FunnelVaccinationMetrics;
+SELECT
+    dea.continent,
+    SUM(dea.population) AS TotalPopulation,
+    MAX(vac.people_vaccinated) AS PeopleWithFirstDose,
+    MAX(vac.people_fully_vaccinated) AS PeopleFullyVaccinated,
+    -- Tasa de conversion del 1er paso (poblacion total a primera dosis)
+    (CAST(MAX(vac.people_vaccinated) AS DECIMAL(18, 4)) / SUM(dea.population)) * 100 AS FirstDoseRate,
+    -- Tasa de conversion del 2do paso (primera dosis a dosis completa)
+    (CAST(MAX(vac.people_fully_vaccinated) AS DECIMAL(18, 4)) / MAX(vac.people_vaccinated)) * 100 AS FullVaccinationConversionRate
+INTO FunnelVaccinationMetrics -- 🚨 Crea la tabla final para el Funnel
+FROM 
+    PortfolioProject..CovidDeaths dea
+JOIN 
+    PortfolioProject..CovidVaccinations vac 
+        ON dea.location = vac.location AND dea.date = vac.date
+WHERE
+    dea.continent IS NOT NULL
+GROUP BY
+    dea.continent
+ORDER BY
+    TotalPopulation DESC;
+GO
+
+-- Verificar la tabla de Funnel
+SELECT * FROM FunnelVaccinationMetrics;
+
